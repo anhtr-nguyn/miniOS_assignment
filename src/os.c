@@ -124,8 +124,14 @@ static void * ld_routine(void * args) {
 		proc->mswp = mswp;
 		proc->active_mswp = active_mswp;
 #endif
+
+#ifdef MLQ_SCHED
 		printf("\tLoaded a process at %s, PID: %d PRIO: %ld\n",
 			ld_processes.path[i], proc->pid, ld_processes.prio[i]);
+#else
+		printf("\tLoaded a process at %s, PID: %d PRIO: %u\n",
+			ld_processes.path[i], proc->pid, proc->priority);
+#endif
 		add_proc(proc);
 		free(ld_processes.path[i]);
 		i++;
