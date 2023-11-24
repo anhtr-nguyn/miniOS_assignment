@@ -1,11 +1,11 @@
-//#ifdef MM_PAGING
+#include "mm.h"
+#ifdef MM_PAGING
 /*
  * PAGING based Memory Management
  * Virtual memory module mm/mm-vm.c
  */
 
 #include "string.h"
-#include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -518,4 +518,4 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
  return 0;
 }
 
-//#endif
+#endif
