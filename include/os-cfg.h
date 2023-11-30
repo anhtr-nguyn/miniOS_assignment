@@ -1,8 +1,8 @@
 #ifndef OSCFG_H
 #define OSCFG_H
 
-// #define MLQ_SCHED 1
-// #define MAX_PRIO 140
+#define MLQ_SCHED 2
+#define MAX_PRIO  2
 
 // #define MM_PAGING
 //#define MM_FIXED_MEMSZ
