@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include "queue.h"
 
+/*
+ * @brief:	check if the queue is empty
+ * @para:	pointer the queue
+ * @retval:	1   -   empty 
+ *          0   -   not empty
+ * */
 int empty(struct queue_t *q)
 {
     if (q == NULL)
