@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include "queue.h"
 
+/*
+ * @brief:	check if the queue is empty
+ * @para:	pointer the queue
+ * @retval:	1   -   empty 
+ *          0   -   not empty
+ * */
 int empty(struct queue_t *q)
 {
     if (q == NULL)
@@ -17,7 +23,7 @@ void enqueue(struct queue_t *q, struct pcb_t *proc)
     q->size++;
     q->proc[q->size - 1] = proc;
 }
-
+#ifdef MLQ_SCHED
 struct pcb_t *dequeue(struct queue_t *q)
 {
     /* TODO: return a pcb whose prioprity is the highest
@@ -36,3 +42,28 @@ struct pcb_t *dequeue(struct queue_t *q)
     }
     return ret_proc;
 }
+#else
+/*
+ * @brief:	get the process that has the highest priority in the queue
+ *          use only when disable MLQ_SCHED
+ * @para:	pointer the queue need to get the process
+ * @retval:	pointer to the process 
+ *          NULL: queue is empty
+ * */
+struct pcb_t *dequeue(struct queue_t *q)
+{
+    struct pcb_t *ret_proc = NULL;
+    int highestPriority = MAX_PRIO * 2;
+    int index_proc = -1;
+    for (int i = 0; i < q->size; i++)
+    {
+        if (q->proc[i]->priority < highestPriority)
+        {
+            highestPriority = q->proc[i]->priority;
+            index_proc = i;
+        }
+    }
+    
+    if (index_proc == -1) return ret_proc; // queue is empty
+}
+#endif

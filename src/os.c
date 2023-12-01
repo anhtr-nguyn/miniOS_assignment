@@ -272,7 +272,6 @@ int main(int argc, char * argv[]) {
 
 	/* Stop timer */
 	stop_timer();
-
 	return 0;
 
 }

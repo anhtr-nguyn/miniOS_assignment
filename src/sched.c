@@ -8,7 +8,7 @@
 static struct queue_t ready_queue;
 static struct queue_t run_queue;
 static pthread_mutex_t queue_lock;
-
+pthread_mutex_t var_lock;
 #ifdef MLQ_SCHED
 static struct queue_t mlq_ready_queue[MAX_PRIO];
 #endif
@@ -34,6 +34,7 @@ void init_scheduler(void)
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
+	pthread_mutex_init(&var_lock, NULL);
 	pthread_mutex_init(&queue_lock, NULL);
 }
 
@@ -50,9 +51,79 @@ struct pcb_t *get_mlq_proc(void)
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+	static int current_priority = 0;
+	static int current_time_slot = MAX_PRIO - 1;
+	pthread_mutex_lock(&queue_lock);
+	int check = 0;
+	while (1)
+	{
+		if (empty(&mlq_ready_queue[current_priority]))
+		{
+			// jump to next priority queue and decrease time_slot
+			current_priority++;
+			current_time_slot--;
+		}
+		else
+		{
+			proc = dequeue(&mlq_ready_queue[current_priority]);
+			current_time_slot--;
+			if (current_time_slot <= 0)
+			{
+				current_priority++;
+				current_time_slot = MAX_PRIO - 1 - current_priority;
+			}
+			break;
+		}
+		if (current_priority >= MAX_PRIO)
+		{
+			check++;
+			current_priority = 0;
+			current_time_slot = MAX_PRIO - 1;
+		}
+		if (check == 2)
+		{
+			break;
+		}
+		
+		// printf("still in :((");
+	}
+	pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
+// struct pcb_t * get_mlq_proc(void) {
+//     /*TODO: get a process from PRIORITY[ready_queue].
+// 	 * Remember to use lock to protect the queue.
+// 	 * */
+//     static int curr_prio = MAX_PRIO;
+//     static int curr_slot = 0;
+//     struct pcb_t * proc = NULL;
+//     pthread_mutex_lock(&queue_lock);
+// 	pthread_mutex_lock(&var_lock);
+//     int double_check = 0;
+//     while (double_check < 2) {
+//         if (!empty(&mlq_ready_queue[MAX_PRIO - curr_prio])) {
+//             proc = dequeue(&mlq_ready_queue[MAX_PRIO - curr_prio]);
+//             curr_slot++;
+//             if (curr_slot >= curr_prio) { // Check curr_slot >= Thoi gian cho phep chay;
+//                 curr_slot = 0;
+//                 curr_prio--; // Ready to jump next queue
+//             }
+//             break;
+//         } else {
+//             // printf("%d\n", curr_prio);
+//             curr_slot = 0;
+//             curr_prio--; // Ready to jump to next queue
+//         }
 
+//         if (curr_prio < 1) {
+//             double_check += 1;
+//             curr_prio = MAX_PRIO;
+//         }
+//     }
+//     pthread_mutex_unlock(&queue_lock);
+//     pthread_mutex_unlock(&var_lock);
+//     return proc;
+// }
 void put_mlq_proc(struct pcb_t *proc)
 {
 	pthread_mutex_lock(&queue_lock);
