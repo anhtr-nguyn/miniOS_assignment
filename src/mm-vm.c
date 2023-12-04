@@ -84,7 +84,7 @@ int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
   }
   else
   {
-    mm->mmap->vm_freerg_list = &rg_elmt;
+    mm->mmap->vm_freerg_list = rg_elmt;
   }
   return SUCCESS;
 }
