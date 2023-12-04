@@ -263,7 +263,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
       MEMPHY_put_freefp(caller->active_mswp, tgtfpn);
 
-      pte_set_fpn(&caller->mm->pdn[pgn], tmpfpn);
+      pte_set_fpn(&caller->mm->pgd[pgn], tmpfpn);
     }
     else
     {
