@@ -9,25 +9,84 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define BAD_ALLOC -1
+#define SUCCESS 0
+
 /*enlist_vm_freerg_list - add new rg to freerg_list
  *@mm: memory region
  *@rg_elmt: new region
  *
  */
-int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt)
+int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
 {
-  struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
+  struct vm_rg_struct *free_rg_node = mm->mmap->vm_freerg_list;
 
-  if (rg_elmt.rg_start >= rg_elmt.rg_end)
-    return -1;
+  if (rg_elmt->rg_start >= rg_elmt->rg_end)
+    return BAD_ALLOC;
 
-  if (rg_node != NULL)
-    rg_elmt.rg_next = rg_node;
-
-  /* Enlist the new region */
-  mm->mmap->vm_freerg_list = &rg_elmt;
-
-  return 0;
+  if (free_rg_node != NULL)
+  {
+    if (rg_elmt->rg_end < free_rg_node->rg_start)
+    { // make new region as first free region
+      rg_elmt->rg_next = free_rg_node;
+      mm->mmap->vm_freerg_list = rg_elmt;
+    }
+    else if (rg_elmt->rg_end < free_rg_node->rg_start)
+    { // combine to first free region
+      free_rg_node->rg_start = rg_elmt->rg_start;
+      free(rg_elmt);
+    }
+    else
+    {
+      while (free_rg_node)
+      {
+        if (free_rg_node->rg_end < rg_elmt->rg_start)
+        {
+          if (free_rg_node->rg_next == NULL)
+          { // new free region is aligned after last free region
+            free_rg_node->rg_next = rg_elmt;
+            break;
+          }
+          else if (free_rg_node->rg_next->rg_start > rg_elmt->rg_end)
+          { // new free region is aligned between two free regions
+            rg_elmt->rg_next = free_rg_node->rg_next;
+            free_rg_node->rg_next = rg_elmt;
+            break;
+          }
+          else if (free_rg_node->rg_next->rg_start == rg_elmt->rg_end)
+          { // combine with next free region
+            free_rg_node->rg_next->rg_start = rg_elmt->rg_start;
+            free(rg_elmt);
+            break;
+          }
+        }
+        else if (free_rg_node->rg_end == rg_elmt->rg_start)
+        { // combine with current free region
+          if (free_rg_node->rg_next == NULL || free_rg_node->rg_next->rg_start > rg_elmt->rg_end)
+          {
+            free_rg_node->rg_end = rg_elmt->rg_end;
+            free(rg_elmt);
+            break;
+          }
+          else if (free_rg_node->rg_next->rg_start == rg_elmt->rg_end)
+          { // new region fits with in current free region and its next free region, combine all
+            free_rg_node->rg_end = free_rg_node->rg_next->rg_end;
+            struct vm_rg_struct *tmp = free_rg_node->rg_next;
+            free_rg_node->rg_next = free_rg_node->rg_next->rg_next;
+            free(tmp);
+            free(rg_elmt);
+            break;
+          }
+        }
+        free_rg_node = free_rg_node->rg_next;
+      }
+    }
+  }
+  else
+  {
+    mm->mmap->vm_freerg_list = &rg_elmt;
+  }
+  return SUCCESS;
 }
 
 /*get_vma_by_num - get vm area by numID
@@ -88,7 +147,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 
     *alloc_addr = rgnode.rg_start;
 
-    return 0;
+    return SUCCESS;
   }
 
   /* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
@@ -96,8 +155,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /*Attempt to increate limit to get space */
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   int inc_sz = PAGING_PAGE_ALIGNSZ(size);
-  //int inc_limit_ret
-  int old_sbrk ;
+  // int inc_limit_ret
+  int old_sbrk;
 
   old_sbrk = cur_vma->sbrk;
 
@@ -108,11 +167,20 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 
   /*Successful increase limit */
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
-  caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+  unsigned long new_sbrk = caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
 
   *alloc_addr = old_sbrk;
 
-  return 0;
+  if (new_sbrk < cur_vma->sbrk)
+  {
+    struct vm_rg_struct *remain_rg = malloc(sizeof(struct vm_rg_struct));
+    remain_rg->rg_start = new_sbrk;
+    remain_rg->rg_end = cur_vma->sbrk;
+    remain_rg->rg_next = NULL;
+    enlist_vm_freerg_list(caller->mm, remain_rg);
+  }
+
+  return SUCCESS;
 }
 
 /*__free - remove a region memory
