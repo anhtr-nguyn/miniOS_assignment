@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define BAD_ALLOC -1
+#define FAIL -1
 #define SUCCESS 0
 
 /*enlist_vm_freerg_list - add new rg to freerg_list
@@ -22,7 +22,7 @@ int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
   struct vm_rg_struct *free_rg_node = mm->mmap->vm_freerg_list;
 
   if (rg_elmt->rg_start >= rg_elmt->rg_end)
-    return BAD_ALLOC;
+    return FAIL;
 
   if (free_rg_node != NULL)
   {
@@ -192,12 +192,20 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  */
 int __free(struct pcb_t *caller, int vmaid, int rgid)
 {
-  struct vm_rg_struct rgnode;
+  struct vm_rg_struct *rgnode = malloc(sizeof(struct vm_rg_struct));
 
   if(rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
-    return -1;
+    return FAIL;
 
   /* TODO: Manage the collect freed region to freerg_list */
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+  if (cur_vma == NULL)
+    return FAIL;
+  struct vm_rg_struct *freed_rg = &(caller->mm->symrgtbl[rgid]);
+  if (freed_rg == NULL)
+    return FAIL;
+  rgnode->rg_start = freed_rg->rg_start;
+  rgnode->rg_end = freed_rg->rg_end;
 
   /*enlist the obsoleted memory region */
   enlist_vm_freerg_list(caller->mm, rgnode);
