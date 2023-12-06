@@ -53,8 +53,12 @@ struct mm_struct {
    /* Currently we support a fixed number of symbol */
    struct vm_rg_struct symrgtbl[PAGING_MAX_SYMTBL_SZ];
 
+   /* Array of allocated reg */
+   int allocated[PAGING_MAX_SYMTBL_SZ];
+
    /* list of free page */
    struct pgn_t *fifo_pgn;
+   struct pgn_t *fifo_pgn_tail;
 };
 
 /*
@@ -66,6 +70,9 @@ struct framephy_struct {
 
    /* Resereed for tracking allocated framed */
    struct mm_struct* owner;
+
+   /* In RAM or not */
+   int in_RAM;
 };
 
 struct memphy_struct {

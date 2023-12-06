@@ -23,8 +23,14 @@
 #define PAGING_PTE_EMPTY02_MASK BIT(13)
 
 /* PTE BIT PRESENT */
-#define PAGING_PTE_SET_PRESENT(pte) (pte=pte|PAGING_PTE_PRESENT_MASK)
+#define PAGING_PAGE_SET_PRESENT(pte) SETBIT(pte,PAGING_PTE_PRESENT_MASK)
+#define PAGING_PAGE_CLR_PRESENT(pte) CLRBIT(pte,PAGING_PTE_PRESENT_MASK)
 #define PAGING_PAGE_PRESENT(pte) (pte&PAGING_PTE_PRESENT_MASK)
+
+/* PTE BIT SWAPPED */
+#define PAGING_PAGE_SET_SWAPPED(pte) SETBIT(pte,PAGING_PTE_SWAPPED_MASK)
+#define PAGING_PAGE_CLR_SWAPPED(pte) CLRBIT(pte,PAGING_PTE_SWAPPED_MASK)
+#define PAGING_PAGE_SWAPPED(pte) (pte&PAGING_PTE_SWAPPED_MASK)
 
 /* USRNUM */
 #define PAGING_PTE_USRNUM_LOBIT 15
@@ -94,7 +100,7 @@
 /* VM region prototypes */
 struct vm_rg_struct * init_vm_rg(int rg_start, int rg_endi);
 int enlist_vm_rg_node(struct vm_rg_struct **rglist, struct vm_rg_struct* rgnode);
-int enlist_pgn_node(struct pgn_t **pgnlist, int pgn);
+int enlist_pgn_node(struct pgn_t **pgnlist, struct pgn_t **ptail, int pgn);
 int vmap_page_range(struct pcb_t *caller, int addr, int pgnum, 
                     struct framephy_struct *frames, struct vm_rg_struct *ret_rg);
 int vm_map_ram(struct pcb_t *caller, int astart, int send, int mapstart, int incpgnum, struct vm_rg_struct *ret_rg);
@@ -130,6 +136,7 @@ int pgwrite(
 		uint32_t destination, // Index of destination register
 		uint32_t offset);
 /* Local VM prototypes */
+int free_pcb_memph(struct pcb_t *caller);
 struct vm_rg_struct * get_symrg_byid(struct mm_struct* mm, int rgid);
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend);
 int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_struct *newrg);
@@ -152,4 +159,21 @@ int print_list_vma(struct vm_area_struct *rg);
 
 int print_list_pgn(struct pgn_t *ip);
 int print_pgtbl(struct pcb_t *ip, uint32_t start, uint32_t end);
+
+/* Extract OFFSET */
+#define PAGING_GET_OFFST(x)  GETVAL(x,PAGING_OFFST_MASK,PAGING_ADDR_OFFST_LOBIT)
+#define PAGING_SET_OFFST(x,val)  SETVAL(x,val,PAGING_OFFST_MASK,PAGING_ADDR_OFFST_LOBIT)
+/* Extract Page Number*/
+#define PAGING_GET_PGN(x)  GETVAL(x,PAGING_PGN_MASK,PAGING_ADDR_PGN_LOBIT)
+#define PAGING_SET_PGN(x,val)  SETVAL(x,val,PAGING_PGN_MASK,PAGING_ADDR_PGN_LOBIT)
+/* Extract FramePHY Number*/
+#define PAGING_GET_FPN(x)  GETVAL(x,PAGING_PTE_FPN_MASK,PAGING_PTE_FPN_LOBIT)
+#define PAGING_SET_FPN(x,val)  SETVAL(x,val,PAGING_PTE_FPN_MASK,PAGING_PTE_FPN_LOBIT)
+/* Extract SWAPFPN */
+#define PAGING_GET_SWPOFF(x)  GETVAL(x,PAGING_PTE_SWPOFF_MASK,PAGING_PTE_SWPOFF_LOBIT)
+#define PAGING_SET_SWPOFF(x,val)  SETVAL(x,val,PAGING_PTE_SWPOFF_MASK,PAGING_PTE_SWPOFF_LOBIT)
+/* Extract SWAPTYPE */
+#define PAGING_GET_SWPTYP(x)  GETVAL(x,PAGING_PTE_SWPTYP_MASK,PAGING_PTE_SWPTYP_LOBIT)
+#define PAGING_SET_SWPTYP(x,val)  SETVAL(x,val,PAGING_PTE_SWPTYP_MASK,PAGING_PTE_SWPTYP_LOBIT)
+
 #endif
