@@ -1,12 +1,11 @@
+#include "mm.h"
+#include <stdlib.h>
+#include <stdio.h>
 #ifdef MM_PAGING
 /*
  * PAGING based Memory Management
  * Memory management unit mm/mm.c
  */
-
-#include "mm.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 /* 
  * init_pte - Initialize PTE entry
