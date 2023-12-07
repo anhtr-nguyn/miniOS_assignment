@@ -6,7 +6,7 @@
 
 #include "mm.h"
 #include <stdlib.h>
-
+#include <stdio.h>
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
  *  @mp: memphy struct
@@ -167,11 +167,12 @@ int MEMPHY_dump(struct memphy_struct *mp)
    {
       if(mp->storage[address])
       {
-         printf("0x%lx: %x", address, mp->storage[address]);
+         printf("0x%08lx: %08x\n", address, mp->storage[address]);
       }
       address++;
    }
-      return 0;
+   printf("\n");
+   return 0;
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
