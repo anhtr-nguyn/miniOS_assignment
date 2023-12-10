@@ -19,74 +19,86 @@
  */
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
 {
-  struct vm_rg_struct *free_rg_node = mm->mmap->vm_freerg_list;
+  struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
 
   if (rg_elmt->rg_start >= rg_elmt->rg_end)
     return FAIL;
 
+  /* Enlist and combine new region */
   rg_elmt->rg_next = NULL;
-
-  if (free_rg_node != NULL)
+  if (rg_node == NULL)
   {
-    if (rg_elmt->rg_end < free_rg_node->rg_start)
-    { // make new region as first free region
-      rg_elmt->rg_next = free_rg_node;
+    mm->mmap->vm_freerg_list = rg_elmt;
+  }
+  else if (rg_elmt->rg_end <= rg_node->rg_start)
+  {
+    if (rg_elmt->rg_end < rg_node->rg_start)
+    {
+      rg_elmt->rg_next = rg_node;
       mm->mmap->vm_freerg_list = rg_elmt;
-    }
-    else if (rg_elmt->rg_end < free_rg_node->rg_start)
-    { // combine to first free region
-      free_rg_node->rg_start = rg_elmt->rg_start;
-      free(rg_elmt);
     }
     else
     {
-      while (free_rg_node)
-      {
-        if (free_rg_node->rg_end < rg_elmt->rg_start)
-        {
-          if (free_rg_node->rg_next == NULL)
-          { // new free region is aligned after last free region
-            free_rg_node->rg_next = rg_elmt;
-            break;
-          }
-          else if (free_rg_node->rg_next->rg_start > rg_elmt->rg_end)
-          { // new free region is aligned between two free regions
-            rg_elmt->rg_next = free_rg_node->rg_next;
-            free_rg_node->rg_next = rg_elmt;
-            break;
-          }
-          else if (free_rg_node->rg_next->rg_start == rg_elmt->rg_end)
-          { // combine with next free region
-            free_rg_node->rg_next->rg_start = rg_elmt->rg_start;
-            free(rg_elmt);
-            break;
-          }
-        }
-        else if (free_rg_node->rg_end == rg_elmt->rg_start)
-        { // combine with current free region
-          if (free_rg_node->rg_next == NULL || free_rg_node->rg_next->rg_start > rg_elmt->rg_end)
-          {
-            free_rg_node->rg_end = rg_elmt->rg_end;
-            free(rg_elmt);
-            break;
-          }
-          else if (free_rg_node->rg_next->rg_start == rg_elmt->rg_end)
-          { // new region fits with in current free region and its next free region, combine all
-            free_rg_node->rg_end = free_rg_node->rg_next->rg_end;
-            struct vm_rg_struct *tmp = free_rg_node->rg_next;
-            free_rg_node->rg_next = free_rg_node->rg_next->rg_next;
-            free(tmp);
-            free(rg_elmt);
-            break;
-          }
-        }
-        free_rg_node = free_rg_node->rg_next;
-      }
+      rg_node->rg_start = rg_elmt->rg_start;
+      free(rg_elmt);
     }
   }
   else
   {
-    mm->mmap->vm_freerg_list = rg_elmt;
+    while (1)
+    {
+      if (rg_node->rg_end < rg_elmt->rg_start)
+      {
+        if (rg_node->rg_next == NULL)
+        {
+          rg_node->rg_next = rg_elmt;
+          break;
+        }
+        else
+        {
+          if (rg_node->rg_next->rg_start > rg_elmt->rg_end)
+          {
+            rg_elmt->rg_next = rg_node->rg_next;
+            rg_node->rg_next = rg_elmt;
+            break;
+          }
+          else if (rg_node->rg_next->rg_start == rg_elmt->rg_end)
+          {
+            rg_node->rg_next->rg_start = rg_elmt->rg_start;
+            free(rg_elmt);
+            break;
+          }
+        }
+      }
+      else if (rg_node->rg_end == rg_elmt->rg_start)
+      {
+        if (rg_node->rg_next == NULL)
+        {
+          rg_node->rg_end = rg_elmt->rg_end;
+          free(rg_elmt);
+          break;
+        }
+        else
+        {
+          if (rg_node->rg_next->rg_start > rg_elmt->rg_end)
+          {
+            rg_node->rg_end = rg_elmt->rg_end;
+            free(rg_elmt);
+            break;
+          }
+          else if (rg_node->rg_next->rg_start == rg_elmt->rg_end)
+          {
+            struct vm_rg_struct *next_rg = rg_node->rg_next;
+            rg_node->rg_end = rg_node->rg_next->rg_end;
+            rg_node->rg_next = rg_node->rg_next->rg_next;
+            free(next_rg);
+            free(rg_elmt);
+            break;
+          }
+        }
+      }
+      rg_node = rg_node->rg_next;
+    }
   }
   return SUCCESS;
 }
