@@ -23,6 +23,7 @@ void enqueue(struct queue_t *q, struct pcb_t *proc)
     q->size++;
     q->proc[q->size - 1] = proc;
 }
+
 #ifdef MLQ_SCHED
 struct pcb_t *dequeue(struct queue_t *q)
 {
@@ -30,8 +31,9 @@ struct pcb_t *dequeue(struct queue_t *q)
      * in the queue [q] and remember to remove it from q
      * */
     struct pcb_t *ret_proc = NULL;
-
-    if (!empty(q))
+    if (empty(q))
+        return ret_proc;
+    else
     {
         ret_proc = q->proc[0];
         for (int i = 0; i < q->size - 1; i++)
@@ -43,27 +45,38 @@ struct pcb_t *dequeue(struct queue_t *q)
     return ret_proc;
 }
 #else
-/*
- * @brief:	get the process that has the highest priority in the queue
- *          use only when disable MLQ_SCHED
- * @para:	pointer the queue need to get the process
- * @retval:	pointer to the process 
- *          NULL: queue is empty
- * */
 struct pcb_t *dequeue(struct queue_t *q)
 {
-    struct pcb_t *ret_proc = NULL;
+    /* TODO: return a pcb whose prioprity is the highest
+     * in the queue [q] and remember to remove it from q
+     * */
     int highestPriority = MAX_PRIO * 2;
-    int index_proc = -1;
+    int ind = -1;
+
     for (int i = 0; i < q->size; i++)
     {
-        if (q->proc[i]->priority < highestPriority)
+        // If priority is same choose
+        // the element with the
+        // highest value
+        if (highestPriority > q->proc[i]->priority)
         {
             highestPriority = q->proc[i]->priority;
-            index_proc = i;
+            ind = i;
         }
     }
-    
-    if (index_proc == -1) return ret_proc; // queue is empty
+
+    if (ind == -1)
+        return NULL;
+    else
+    {
+        struct pcb_t *ret_proc = q->proc[ind];
+        for (int i = ind; i < q->size - 1; i++)
+        {
+            q->proc[i] = q->proc[i + 1];
+        }
+        q->size--;
+        return ret_proc;
+    }
+    return NULL;
 }
 #endif
